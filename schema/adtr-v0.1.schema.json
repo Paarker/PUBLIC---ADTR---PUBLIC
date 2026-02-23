@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adtr.dev/schema/v0.1/adtr-record.schema.json",
+  "title": "ADTR Record",
+  "description": "ADTR record v0.1 — one record per AI-assisted development interaction.",
+  "type": "object",
+  "required": ["record_envelope", "activity_payload"],
+  "properties": {
+    "record_envelope": {
+      "type": "object",
+      "description": "Identity, timing, tool info. Always required.",
+      "required": ["record_id", "record_version", "created_at", "actor_id", "session_id", "tool_id", "tool_version", "integrity_hash"],
+      "properties": {
+        "record_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "UUID v4"
+        },
+        "record_version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Semver of the ADTR spec this record targets, e.g. '0.1.0'"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601, UTC. When the record was created."
+        },
+        "actor_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Pseudonymised developer identifier. No PII — hash or opaque token."
+        },
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Groups records from a single working session"
+        },
+        "tool_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "AI tool identifier (cursor, copilot, claude-code, chatgpt, etc)"
+        },
+        "tool_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Tool version string. Be specific enough to be useful."
+        },
+        "integrity_hash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Hash or signature for tamper detection. The standard deliberately does NOT prescribe an algorithm — use whatever fits your threat model"
+        }
+      },
+      "additionalProperties": false
+    },
+    "activity_payload": {
+      "type": "object",
+      "description": "What actually happened between the developer and the AI.",
+      "required": ["activity_type", "developer_action"],
+      "properties": {
+        "activity_type": {
+          "type": "string",
+          "enum": [
+            "code_generation",
+            "architecture_decision",
+            "library_evaluation",
+            "test_strategy",
+            "refactoring_rationale",
+            "bug_investigation",
+            "configuration_decision",
+            "documentation_generation",
+            "custom"
+          ],
+          "description": "Activity category. Use 'custom' as a last resort."
+        },
+        "prompt_context": {
+          "type": "string",
+          "description": "What the developer asked or was trying to do. Scrub secrets before storing."
+        },
+        "ai_response_summary": {
+          "type": "string",
+          "description": "Summary of what the AI suggested. Doesn't need to be verbatim."
+        },
+        "developer_action": {
+          "type": "string",
+          "enum": ["accepted", "modified", "rejected", "deferred"],
+          "description": "What the developer actually did"
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Why the developer took this action. Most important field in the record."
+        },
+        "uncertainty_flag": {
+          "type": "boolean",
+          "default": false,
+          "description": "Was there genuine technical uncertainty?"
+        },
+        "uncertainty_description": {
+          "type": "string",
+          "description": "Describe the uncertainty. Required when flag is true."
+        },
+        "alternatives_considered": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Other options considered. Even one-liners help."
+        }
+      },
+      "additionalProperties": false,
+      "if": {
+        "properties": { "uncertainty_flag": { "const": true } }
+      },
+      "then": {
+        "required": ["activity_type", "developer_action", "uncertainty_description"]
+      }
+    },
+    "context_tags": {
+      "type": "object",
+      "description": "Optional routing metadata. Extensible.",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Free-form tags. No controlled vocab."
+        },
+        "category": {
+          "type": "string",
+          "description": "Open-ended classification string"
+        },
+        "capture_mode": {
+          "type": "string",
+          "enum": ["real_time", "near_time", "retrospective", "imported"],
+          "description": "When relative to the event was this captured"
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Confidence 0-1. Up to the implementer how to calculate."
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["filename", "content_type"],
+            "properties": {
+              "filename": { "type": "string" },
+              "content_type": { "type": "string" },
+              "uri": { "type": "string", "format": "uri" },
+              "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+            },
+            "additionalProperties": false
+          },
+          "description": "Supporting evidence — diffs, screenshots, terminal output, etc."
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

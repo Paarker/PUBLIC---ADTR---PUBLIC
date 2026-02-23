@@ -1,0 +1,30 @@
+{
+  "record_envelope": {
+    "record_id": "7c2e91a4-3f8b-4d12-a6c0-8819e3f47b02",
+    "record_version": "0.1.0",
+    "created_at": "2026-02-18T11:23:41Z",
+    "actor_id": "h7k2m",
+    "session_id": "d4a91c3e-8f72-4b05-9e16-3a7c5d829f10",
+    "tool_id": "cursor",
+    "tool_version": "0.45.2",
+    "integrity_hash": "sha256:9b74c9897bac770ffc029102a200c5de"
+  },
+  "activity_payload": {
+    "activity_type": "code_generation",
+    "prompt_context": "Need a retry wrapper for our API client that handles rate limits (429s) with exponential backoff. Should respect the Retry-After header when present.",
+    "ai_response_summary": "Generated a decorator using tenacity with exponential backoff starting at 1s, max 60s. Parses Retry-After header and overrides the backoff delay when present. Includes jitter.",
+    "developer_action": "modified",
+    "rationale": "Backoff logic was fine but it wasn't handling the case where Retry-After returns an HTTP-date instead of seconds (RFC 7231 allows both). Added a check that tries int parse first, falls back to datetime parse. Also bumped max retries from 3 to 5 because our integration tests showed 3 wasn't enough during peak hours.",
+    "uncertainty_flag": true,
+    "uncertainty_description": "Not sure if we need to handle Retry-After as an HTTP-date in practice — none of our current upstream APIs use that format. But the RFC says it's valid and I'd rather not find out the hard way. Went with handling both.",
+    "alternatives_considered": [
+      "Fixed backoff, no header parsing (rejected — we'd hammer the API during outages)",
+      "urllib3 built-in retry (not enough control over backoff curve, and we need per-retry logging)"
+    ]
+  },
+  "context_tags": {
+    "tags": ["api-client", "reliability"],
+    "capture_mode": "real_time",
+    "confidence_score": 0.71
+  }
+}

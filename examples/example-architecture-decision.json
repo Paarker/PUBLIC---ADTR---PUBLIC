@@ -1,0 +1,31 @@
+{
+  "record_envelope": {
+    "record_id": "e5f8a2b1-9c34-4d67-80ab-1f23e4567d89",
+    "record_version": "0.1.0",
+    "created_at": "2026-02-19T16:07:22Z",
+    "actor_id": "h7k2m",
+    "session_id": "d4a91c3e-8f72-4b05-9e16-3a7c5d829f10",
+    "tool_id": "claude-code",
+    "tool_version": "1.0.3",
+    "integrity_hash": "sha256:f47ac10b01b5f0a83e4d731ebf3c67c2"
+  },
+  "activity_payload": {
+    "activity_type": "architecture_decision",
+    "prompt_context": "Evaluating how to structure the event pipeline. We're ingesting dev activity events (git commits, PR reviews, CI runs) and need to process + store them for later reporting. Considering a message queue vs direct DB writes vs a hybrid approach.",
+    "ai_response_summary": "Recommended a hybrid: write events to a lightweight append-only table immediately (Postgres, no transforms), then process them async via a background worker that enriches and classifies. Argued against a full message queue (Kafka/RabbitMQ) at this stage as overkill for the expected volume (<10k events/day). Suggested revisiting if volume 10x's.",
+    "developer_action": "accepted",
+    "rationale": "Agree with the hybrid approach. Direct DB writes give us durability without the operational overhead of running a message broker. We're a small team and I really don't want to be debugging RabbitMQ at 2am. The append-only ingest table also means we never lose raw data even if the processing worker has bugs. Main risk is the background worker falling behind, but at our volume thats not a real concern yet.",
+    "uncertainty_flag": true,
+    "uncertainty_description": "Genuinely unsure if Postgres NOTIFY/LISTEN is reliable enough to trigger the background worker, or if we should just poll on a timer. The AI suggested NOTIFY but I've read mixed things about it dropping notifications under load. Going with polling every 30s for now, will revisit if latency matters.",
+    "alternatives_considered": [
+      "Full Kafka setup (rejected: way too heavy for our scale, adds a whole new system to operate)",
+      "Direct writes with synchronous processing (rejected: blocks the ingest path, one slow classifier stalls everything)",
+      "Redis Streams as a lightweight queue (tempting but adds another stateful service — sticking with just Postgres for now)"
+    ]
+  },
+  "context_tags": {
+    "tags": ["architecture", "event-pipeline", "data-layer"],
+    "capture_mode": "real_time",
+    "confidence_score": 0.82
+  }
+}
