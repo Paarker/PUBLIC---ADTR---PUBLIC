@@ -36,7 +36,7 @@ cat record.json | adtr-validate --stdin
 
 **v0.1** — still in design. Schema will change. Don't build production systems on this yet.
 
-- [x] JSON Schema v0.1 (draft)
+- [x] JSON Schema v0.2 (draft)
 - [x] Example records
 - [ ] CLI validator on PyPI
 - [ ] Reference docs
